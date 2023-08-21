@@ -138,7 +138,7 @@ declare variable $cid := exsaml:generate-correlation-id();
 (: if no valid token, redirect to SAML auth :)
 if (exsaml:is-enabled($cid) and not(exsaml:check-valid-saml-token($cid)))
 then (
-    let $debug := exsaml:log('info', $cid || ": controller: no valid token, redirect to SAML auth")
+    let $debug := exsaml:log('info', $cid, "controller: no valid token, redirect to SAML auth")
     let $return-path := "/exist/apps" || $exist:controller || $exist:path
     return
         <dispatch xmlns="http://exist.sourceforge.net/NS/exist">
@@ -162,9 +162,9 @@ then (
 (: handle SP endpoint to process SAML response in HTTP POST :)
 else if($exist:path = "/SAML2SP")
 then (
-    let $log := util:log('info', $cid || ": SAML2SP: processing SAML response")
+    let $log := exsaml:log('info', $cid, "SAML2SP: processing SAML response")
     let $status := exsaml:process-saml-response-post($cid)
-    let $log := util:log('debug', $cid || ": endpoint SAML2SP; status: " || $status/@code)
+    let $log := exsaml:log('debug', $cid, "endpoint SAML2SP; status: " || $status/@code)
     return
         if ($status/@code >= 0) then
             (: forward to page that was requested by the user :)
