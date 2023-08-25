@@ -137,7 +137,7 @@ declare variable $cid := exsaml:generate-correlation-id();
 
 (: handle SP endpoint to process SAML response in HTTP POST :)
 if ($exist:path = "/SAML2SP")
-then (
+then
     let $log := exsaml:log('info', $cid, "SAML2SP: processing SAML response")
     let $status := exsaml:process-saml-response-post($cid)
     let $log := exsaml:log('debug', $cid, "endpoint SAML2SP; status: " || $status/@code)
@@ -152,21 +152,21 @@ then (
         else
             (: if SAML failed, display an error message for now :)
             <data cid="{$cid}">{string($status/@msg) || ": " || string($status/@data)}</data>
-)
 
 (: if logout, invalidate SAML token :)
 else if ($exist:path = '/logout')
-then (
-    if (exsaml:is-enabled($cid))
-    then exsaml:invalidate-saml-token($cid)
-    else ()
-    ,
-    <dispatch> ... </dispatch>
-    )
+then
+    let $_ :=
+            if (exsaml:is-enabled($cid))
+            then
+                exsaml:invalidate-saml-token($cid)
+            else ()
+    return
+        <dispatch> ... </dispatch>
 
 (: if no valid token, redirect to SAML auth :)
 else if (exsaml:is-enabled($cid) and not(exsaml:check-valid-saml-token($cid)))
-then (
+then
     let $debug := exsaml:log('info', $cid, "controller: no valid token, redirect to SAML auth")
     let $return-path := "/exist/apps" || $exist:controller || $exist:path
     return
@@ -176,11 +176,9 @@ then (
                 <set-header name="Pragma" value="no-cache" />
             </redirect>
         </dispatch>
-    )
 
-else (
+else
     (: your controller code here :)
-)
 ```
 
 ## Misc
