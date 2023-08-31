@@ -310,16 +310,16 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
                         let $u :=
                                 if ($config($exsaml:key-create-user) = "true" and xs:integer($auth/@code) ge 0)
                                 then
-                                    exsaml:ensure-saml-user($cid, $auth/@nameid, $config)
-                                else ""
-
-                        let $pass := exsaml:create-user-password($auth/@nameid, $config)
-                        let $log-in := xmldb:login("/db", $auth/@nameid, $pass, true())
-                        let $log := exsaml:log("info", $cid, "login result: " || $log-in || ", " || fn:serialize(sm:id()))
+                                    let $pass := exsaml:create-user-password($auth/@nameid, $config)
+                                    let $_ := exsaml:ensure-saml-user($cid, $auth/@nameid, $pass, $config)
+                                    let $log-in := xmldb:login("/db", $auth/@nameid, $pass, true())
+                                    let $_ := exsaml:log("info", $cid, "login result: " || $log-in || ", " || fn:serialize(sm:id()))
+                                    return ()
+                                else ()
 
                         (: put SAML token into browser session :)
                         let $sesstok :=
-                                if ($log-in and xs:integer($auth/@code) ge 0)
+                                if (xs:integer($auth/@code) ge 0)
                                 then
                                     exsaml:set-saml-token($cid, $auth/@nameid, $auth/@authndate, $config)
                                 else ()
@@ -562,18 +562,17 @@ declare %private function exsaml:fetch-saml-attribute-values($cid as xs:string, 
  :
  : @param $cid An id used for correlating log messages.
  : @param $nameid the name for the user account.
+ : @param $pass the password for the user account.
  : @param $config the exsaml module configuration.
  :)
-declare %private function exsaml:ensure-saml-user($cid as xs:string, $nameid as xs:string, $config as map(xs:string, item()*)) {
-    let $pass := exsaml:create-user-password($nameid, $config)
-    return
-        (: run as user exsaml, group dba :)
-        system:as-user($config($exsaml:key-exsaml-user), $config($exsaml:key-exsaml-pass),
-                       if (not(sm:user-exists($nameid))
-                           and exsaml:log("info", $cid, "create new user account " || $nameid || ", group " || $config($exsaml:key-user-group))) then
-                           sm:create-account($nameid, $pass, $config($exsaml:key-user-group), ())
-                       else ()
-        )
+declare %private function exsaml:ensure-saml-user($cid as xs:string, $nameid as xs:string, $pass as xs:string, $config as map(xs:string, item()*)) {
+    (: run as user exsaml, group dba :)
+    system:as-user($config($exsaml:key-exsaml-user), $config($exsaml:key-exsaml-pass),
+                   if (not(sm:user-exists($nameid))
+                       and exsaml:log("info", $cid, "create new user account " || $nameid || ", group " || $config($exsaml:key-user-group))) then
+                       sm:create-account($nameid, $pass, $config($exsaml:key-user-group), ())
+                   else ()
+    )
 };
 
 (: create user password as HMAC of username :)
