@@ -272,7 +272,7 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
             try {
                 let $res := exsaml:validate-saml-response($cid, $resp, $config)
                 return
-                    if ($res/@res lt 0)
+                    if (xs:integer($res/@res) lt 0)
                     then
                         (: validate-saml-response returned a negative @res value which is an error code, so just return it:)
                         $res
@@ -308,7 +308,7 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
 
                         (: create SAML user if not exists yet :)
                         let $u :=
-                                if ($config($exsaml:key-create-user) = "true" and $auth/@code >= "0")
+                                if ($config($exsaml:key-create-user) = "true" and xs:integer($auth/@code) ge 0)
                                 then
                                     exsaml:ensure-saml-user($cid, $auth/@nameid, $config)
                                 else ""
@@ -319,7 +319,7 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
 
                         (: put SAML token into browser session :)
                         let $sesstok :=
-                                if ($log-in and $auth/@code >= "0")
+                                if ($log-in and xs:integer($auth/@code) ge 0)
                                 then
                                     exsaml:set-saml-token($cid, $auth/@nameid, $auth/@authndate, $config)
                                 else ()
