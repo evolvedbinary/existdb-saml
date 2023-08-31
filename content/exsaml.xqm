@@ -265,12 +265,12 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
     let $debug := exsaml:log("debug", $cid, "END SAML RESPONSE")
 
     return
-        if ($resp = "error")
+        if ($resp = "error" or fn:empty($resp/samlp:Response))
         then
             error($exsaml:ERROR, $cid || ": Empty SAML Response", "No SAML response data has been provided")
         else
             try {
-                let $res := exsaml:validate-saml-response($cid, $resp, $config)
+                let $res := exsaml:validate-saml-response($cid, $resp/samlp:Response, $config)
                 return
                     if (xs:integer($res/@res) lt 0)
                     then
@@ -302,8 +302,8 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
                            If SAML success, this is basically username and group membership.
                            IF SAML fail, pass enough info to allow meaningful error messages. :)
                         let $auth :=
-                                <authresult code="{$res/@res}" msg="{$res/@msg}" nameid="{$resp/saml:Assertion/saml:Subject/saml:NameID}" relaystate="{$rsout}" authndate="{$resp/saml:Assertion/@IssueInstant}">
-                                    <groups>{exsaml:fetch-saml-attribute-values($cid, $config($exsaml:key-group-attr), $resp/saml:Assertion) ! <group>{.}</group>}</groups>
+                                <authresult code="{$res/@res}" msg="{$res/@msg}" nameid="{$resp/samlp:Response/saml:Assertion/saml:Subject/saml:NameID}" relaystate="{$rsout}" authndate="{$resp/samlp:Response/saml:Assertion/@IssueInstant}">
+                                    <groups>{exsaml:fetch-saml-attribute-values($cid, $config($exsaml:key-group-attr), $resp/samlp:Response/saml:Assertion) ! <group>{.}</group>}</groups>
                                 </authresult>
 
                         (: create SAML user if not exists yet :)
@@ -338,12 +338,12 @@ declare function exsaml:process-saml-response-post($cid as xs:string, $config as
  : Validate a SAML response message.
  :
  : @param $cid An id used for correlating log messages.
- : @param $resp the XML document containing the SAML Response.
+ : @param $resp the XML element containing the SAML Response.
  : @param $config the exsaml module configuration.
  :
  : @return an element indicating the result of the validation.
  :)
-declare %private function exsaml:validate-saml-response($cid as xs:string, $resp as node(), $config as map(xs:string, item()*)) as element(exsaml:funcret) {
+declare %private function exsaml:validate-saml-response($cid as xs:string, $resp as element(samlp:Response), $config as map(xs:string, item()*)) as element(exsaml:funcret) {
     let $log  := exsaml:log("info", $cid, "validate-saml-response")
 
     let $as := $resp/saml:Assertion
