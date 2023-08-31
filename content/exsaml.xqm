@@ -390,7 +390,7 @@ declare %private function exsaml:validate-saml-response($cid as xs:string, $resp
  :
  : @return an element indicating the result of the validation.
  :)
-declare %private function exsaml:validate-saml-assertion($cid as xs:string, $assertion as item(), $config as map(xs:string, item()*)) as element(exsaml:funcret) {
+declare %private function exsaml:validate-saml-assertion($cid as xs:string, $assertion as element(saml:Assertion), $config as map(xs:string, item()*)) as element(exsaml:funcret) {
     if (empty($assertion))
     then
         let $log := exsaml:log("info", $cid, "Error: Empty Assertion")
